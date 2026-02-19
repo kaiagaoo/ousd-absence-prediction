@@ -1,0 +1,10 @@
+# Project dependencies
+# Add required packages here, e.g.:
+pandas
+numpy
+scikit-learn
+jupyter
+matplotlib
+seaborn
+xgboost
+joblib
