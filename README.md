@@ -104,12 +104,14 @@ Joined neighborhood-level features on zip code and calendar year (school year `1
 - 507K+ crime records across 2017-2024, aggregated to 17 Oakland zip codes per year
 - Columns added: `total_crimes`, `violent_crimes`, `property_crimes`, `drug_crimes`, `other_crimes`
 
+**Join coverage:** 152,077 / 256,865 rows matched (59.2%). Unmatched rows are student-years where the student wasn't enrolled that year (no zip).
+
 **Socioeconomic data** (`scripts/census_oakland_socioeconomic.py` → `data/oakland_socioeconomic_by_zip.csv`):
 - Source: US Census ACS 5-year estimates (2017-2024)
 - 15 Oakland ZCTAs per year
 - Columns added: `total_population`, `poverty_rate_pct`, `median_household_income`, `unemployment_rate_pct`, `high_school_plus_rate_pct`, `college_degree_rate_pct`, `median_gross_rent`, `median_home_value`, `uninsured_rate_pct`
 
-**Join coverage:** 147,607 / 256,865 rows matched (57.5%). Unmatched rows are student-years where the student wasn't enrolled that year (no zip) or had a zip outside the 15 covered Oakland ZCTAs.
+**Join coverage:** 147,607 / 256,865 rows matched (57.5%). Unmatched rows are student-years where the student wasn't enrolled that year (no zip).
 
 ### Output
 
@@ -129,7 +131,7 @@ Notebook: `notebooks/eda.ipynb` | Data: `data/evaldata_cleaned.csv` (2023-24 enr
 - **Year-over-year trend:** Rates spiked during COVID (58.3% in 2022-23), partially recovered in 2023-24
 - **Demographic disparities:** African American and Pacific Islander students have highest chronic rates; SED and SpEd students are significantly more affected
 - **School variation:** Ranges from 6.5% (Lincoln Elementary) to 58.1% (Castlemont High) across 75 schools with ≥50 students
-- **Top correlated features with chronic absence:** DaysAbs (+0.85), AttRate (−0.88), Susp (+0.14), poverty_rate_pct (+0.06)
+- **Top correlated features with chronic absence:** Susp (+0.14), poverty_rate_pct (+0.06), median_home_value (-0.15)
 - **Neighborhood features:** Crime and socioeconomic variables are highly inter-correlated; poverty rate and median income show moderate association with school-level chronic rates
 
 ## Feature Engineering & Train/Test Split

@@ -40,7 +40,7 @@ DEFAULT_OUT = "data/oakland_socioeconomic_by_zip.csv"
 OAKLAND_ZCTAS = [
     "94601", "94602", "94603", "94605", "94606", "94607", "94608",
     "94609", "94610", "94611", "94612", "94613", "94615", "94618",
-    "94619", "94621", "94623",
+    "94619", "94621", "94623", "96409"
 ]
 
 # Census variables to fetch with friendly names
