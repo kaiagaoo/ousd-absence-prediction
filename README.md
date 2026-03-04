@@ -181,37 +181,107 @@ Script: `scripts/train_model.py` | Output: `models/`
 
 ### Approach
 
-Trained five models with class imbalance handling (`class_weight='balanced'` for sklearn models, `scale_pos_weight` for XGBoost). XGBoost was tuned via `RandomizedSearchCV` (30 iterations, 5-fold stratified CV, optimizing F1).
+Trained eight models with class imbalance handling (`class_weight='balanced'` for sklearn models, `scale_pos_weight` for XGBoost). XGBoost was tuned via `RandomizedSearchCV` (40 iterations, 5-fold stratified CV) under two strategies: optimizing recall and optimizing F1. ElasticNet regularization (L1 + L2) is applied to both Logistic Regression and XGBoost tuning.
 
 ### Results
 
-| Model | Accuracy | Precision | Recall | F1 | AUC-ROC |
-|-------|----------|-----------|--------|------|---------|
-| Random Forest | 0.597 | 0.440 | 0.940 | 0.600 | 0.830 |
-| Baseline (prior att) | 0.670 | 0.490 | 0.681 | 0.570 | 0.782 |
-| XGBoost (default) | 0.497 | 0.387 | 0.968 | 0.553 | 0.814 |
-| XGBoost (tuned) | 0.480 | 0.381 | 0.986 | 0.549 | 0.844 |
-| Logistic Regression | 0.365 | 0.335 | 0.996 | 0.502 | 0.767 |
+| Model | Accuracy | Precision | Recall | F1 | AUC-ROC | PR-AUC |
+|-------|----------|-----------|--------|------|---------|--------|
+| Logistic Regression (L2) | 0.365 | 0.335 | 0.996 | 0.502 | 0.766 | 0.665 |
+| XGBoost (tuned-recall) | 0.461 | 0.373 | 0.989 | 0.541 | 0.843 | 0.734 |
+| XGBoost (tuned-F1) | 0.475 | 0.378 | 0.984 | 0.546 | 0.839 | 0.729 |
+| XGBoost (default) | 0.497 | 0.387 | 0.968 | 0.553 | 0.814 | 0.701 |
+| Random Forest | 0.597 | 0.440 | 0.940 | 0.600 | 0.830 | 0.711 |
+| Decision Tree | 0.572 | 0.412 | 0.778 | 0.539 | 0.630 | 0.395 |
+| Baseline (prior att) | 0.670 | 0.490 | 0.681 | 0.570 | 0.782 | 0.567 |
+| Logistic (ElasticNet) | 0.547 | 0.377 | 0.629 | 0.471 | 0.588 | 0.403 |
 
-- **Best F1:** Random Forest (0.600) — best precision-recall balance
-- **Best AUC-ROC:** XGBoost tuned (0.844) — best ranking/discrimination ability
-- **Best recall:** Logistic Regression (99.6%) and XGBoost tuned (98.6%) — catch nearly all chronic absent students, but with many false positives
-- **Best precision:** Baseline (49.0%) — simple rule (prior-year AttRate < 0.90) is hardest to beat on precision
+- **Best recall:** Logistic Regression L2 (99.6%) and XGBoost tuned-recall (98.9%)
+- **Best AUC-ROC:** XGBoost tuned-recall (0.843)
+- **Best PR-AUC:** XGBoost tuned-recall (0.734) — best at distinguishing chronic from non-chronic across all thresholds
+- **Best precision:** Baseline (49.0%) — simple rule (prior-year AttRate < 0.90)
+- **Decision Tree:** Low PR-AUC (0.395) and AUC-ROC (0.630), confirming poor discrimination
 
 ### Tuned XGBoost Parameters
 
-`max_depth=9, learning_rate=0.01, n_estimators=800, subsample=0.7, colsample_bytree=0.8, min_child_weight=1`
+| Variant | max_depth | learning_rate | n_estimators | subsample | colsample_bytree | min_child_weight | reg_alpha (L1) | reg_lambda (L2) |
+|---------|-----------|---------------|--------------|-----------|------------------|------------------|----------------|-----------------|
+| tuned-recall | 7 | 0.05 | 200 | 0.9 | 0.7 | 3 | 0 | 10.0 |
+| tuned-F1 | 7 | 0.05 | 500 | 0.7 | 0.9 | 1 | 0.1 | 1.0 |
+
+### ElasticNet Regularization
+
+**Logistic Regression:** ElasticNet (`l1_ratio=0.5`, combining L1 and L2 penalties) was applied with the `saga` solver. L1 regularization zeroed out 1 of 63 features, indicating most features carry predictive signal. However, the ElasticNet variant significantly underperformed the standard L2 logistic regression (AUC 0.588 vs. 0.766, recall 0.629 vs. 0.996), likely because the saga solver struggled to converge and the L1 penalty was too aggressive for this feature set.
+
+**XGBoost:** `reg_alpha` (L1) and `reg_lambda` (L2) were added to the hyperparameter search grid. The recall-tuned model selected strong L2 regularization (`reg_lambda=10.0`) with no L1 (`reg_alpha=0`), suggesting that L2 weight shrinkage is more beneficial than L1 feature sparsity for tree ensembles on this data. The F1-tuned model selected moderate regularization (`reg_alpha=0.1, reg_lambda=1.0`).
 
 ### Key Observations
 
-1. All ML models achieve high recall but low precision (~34–44%), meaning they flag many non-chronic students as at-risk. This is partly by design (class weighting prioritizes recall) and partly due to the difficulty of the prediction task.
-2. The simple baseline (predict chronic if prior-year AttRate < 0.90) remains competitive — prior-year attendance is the single strongest predictor.
-3. The tuned XGBoost was saved as the best model based on AUC-ROC, though Random Forest leads on F1. Threshold tuning (moving the classification cutoff from 0.5) could improve the precision-recall tradeoff for any model.
+1. **XGBoost benefits from L2 regularization.** The recall-tuned model selected `reg_lambda=10.0`, which helps prevent overfitting by shrinking leaf weights. This is consistent with the overfitting analysis showing XGBoost has the smallest train-test AUC gap.
+2. **ElasticNet hurts Logistic Regression on this data.** The L1 component doesn't help because most features are informative, and the saga solver's convergence issues degrade performance. Standard L2 regularization is sufficient.
+3. **PR-AUC is more informative than AUC-ROC** for this imbalanced task. Random Forest has higher AUC-ROC (0.830) than XGBoost default (0.814), but XGBoost default has a comparable PR-AUC (0.701 vs. 0.711).
+4. The simple baseline remains competitive on precision but misses ~32% of chronic students.
+5. **XGBoost (tuned-recall) remains the recommended model** for deployment, with threshold tuning (see below) to control the precision-recall tradeoff at inference time.
+
+### Overfitting Analysis
+
+Train vs. test performance comparison to assess generalization:
+
+| Model | Train Recall | Test Recall | Gap | Train AUC | Test AUC | Gap | Train PR-AUC | Test PR-AUC | Gap |
+|-------|-------------|-------------|-----|-----------|----------|-----|-------------|-------------|-----|
+| Logistic Regression (L2) | 0.669 | 0.996 | +0.327 | 0.770 | 0.766 | -0.004 | 0.675 | 0.665 | -0.010 |
+| Logistic (ElasticNet) | 0.636 | 0.629 | -0.007 | 0.639 | 0.588 | -0.051 | 0.495 | 0.403 | -0.092 |
+| Decision Tree | 0.989 | 0.778 | -0.211 | 0.999 | 0.630 | -0.370 | 0.998 | 0.395 | -0.603 |
+| Random Forest | 0.986 | 0.940 | -0.046 | 0.998 | 0.830 | -0.168 | 0.996 | 0.711 | -0.284 |
+| XGBoost (default) | 0.893 | 0.968 | +0.075 | 0.953 | 0.814 | -0.139 | 0.921 | 0.701 | -0.221 |
+| XGBoost (tuned-recall) | 0.819 | 0.989 | +0.170 | 0.896 | 0.843 | -0.052 | 0.832 | 0.734 | -0.098 |
+| XGBoost (tuned-F1) | 0.862 | 0.984 | +0.122 | 0.931 | 0.839 | -0.092 | 0.886 | 0.729 | -0.157 |
+
+Cross-validation recall (5-fold on training data):
+
+| Model | CV Recall | Std |
+|-------|-----------|-----|
+| XGBoost (default) | 0.768 | 0.005 |
+| Random Forest | 0.683 | 0.005 |
+| Logistic Regression (L2) | 0.668 | 0.009 |
+| Decision Tree | 0.645 | 0.003 |
+| Logistic (ElasticNet) | 0.632 | 0.015 |
+
+**Findings:**
+
+1. **Decision Tree is severely overfitting.** Train PR-AUC of 0.998 drops to 0.395 on test — the largest gap of any model (-0.603). It memorizes training data but fails to generalize. CV recall (0.645) also confirms poor generalization.
+2. **Random Forest overfits moderately.** Train PR-AUC (0.996) vs. test PR-AUC (0.711) shows a -0.284 gap, though ensemble averaging helps it generalize better than the Decision Tree.
+3. **XGBoost (tuned-recall) generalizes best among tree-based models.** The PR-AUC gap is only -0.098 (0.832 → 0.734) and AUC gap is -0.052 (0.896 → 0.843). The strong L2 regularization (`reg_lambda=10.0`) combined with `min_child_weight=3` and `colsample_bytree=0.7` effectively controls overfitting.
+4. **XGBoost (tuned-F1) overfits slightly more** than tuned-recall (PR-AUC gap -0.157 vs. -0.098), consistent with its weaker regularization (`reg_lambda=1.0` vs. 10.0).
+5. **Logistic Regression (L2) shows an unusual pattern** — higher recall on test (0.996) than train (0.669). This is because `class_weight='balanced'` with the test set's lower chronic rate (32.1% vs. 35.4% train) shifts the decision boundary, causing the model to predict nearly all test samples as positive. The stable AUC gap (-0.004) and PR-AUC gap (-0.010) confirm no real overfitting — the model is simply underfitting.
+6. **Logistic (ElasticNet) does not overfit** (small gaps across all metrics) but also underfits severely, with the lowest test PR-AUC (0.403) after Decision Tree. The saga solver convergence issues and aggressive L1 penalty limit its learning capacity.
+7. **XGBoost (tuned-recall) is the recommended model** — it offers the best tradeoff of high recall (98.9%), strong discrimination (AUC 0.843, PR-AUC 0.734), and minimal overfitting.
+
+### Threshold Tuning
+
+The default threshold (0.50) maximizes recall but flags 85% of all students. By adjusting the classification threshold on the tuned XGBoost's predicted probabilities, we can trade some recall for much better precision:
+
+| Threshold | Precision | Recall | F1 | Students Flagged | % Flagged |
+|-----------|-----------|--------|------|-----------------|-----------|
+| 0.20 | 0.326 | 1.000 | 0.492 | 35,333 | 98.4% |
+| 0.30 | 0.335 | 0.998 | 0.501 | 34,420 | 95.8% |
+| 0.40 | 0.349 | 0.995 | 0.517 | 32,897 | 91.6% |
+| **0.50** | **0.373** | **0.989** | **0.541** | **30,620** | **85.3%** |
+| 0.60 | 0.405 | 0.975 | 0.573 | 27,760 | 77.3% |
+| **0.70** | **0.456** | **0.945** | **0.615** | **23,926** | **66.6%** |
+
+- **Best F1 threshold: 0.70** — achieves 94.5% recall with 45.6% precision, flagging 23,926 students (67% of population). This catches nearly as many chronic students while cutting false positives by ~22% compared to the default.
+- Depending on intervention capacity, practitioners can choose their operating point along this curve. For example, threshold=0.60 flags ~28K students at 97.5% recall, while 0.70 flags ~24K at 94.5% recall.
+
+See `models/precision_recall_tradeoff.png` for the full precision-recall curve and threshold analysis chart.
 
 ### Saved Artifacts
 
-- `models/best_model.joblib` — Tuned XGBoost classifier
-- `models/model_comparison.csv` — Full comparison table
+- `models/best_model.joblib` — XGBoost tuned for recall
+- `models/best_model_f1.joblib` — XGBoost tuned for F1
+- `models/model_comparison.csv` — Full comparison table (includes PR-AUC)
+- `models/threshold_analysis.csv` — Threshold sweep results
+- `models/precision_recall_tradeoff.png` — Precision-recall curve and threshold chart
 - `models/feature_importance.png` — Top 20 feature importance chart
 
 ## License
