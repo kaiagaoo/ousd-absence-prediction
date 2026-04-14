@@ -52,7 +52,7 @@ The raw Excel is wide (one column per field per year). Cleaning:
 5. **Derived labels**:
    - `chronic_absent = (AttRate < 0.90)` — binary target.
    - `absence_tier` — 3-class (satisfactory ≥ 0.95, at-risk 0.90–0.95, chronic < 0.90).
-6. Output → `data/evaldata_cleaned.csv`.
+6. Output → `data/evaldata_cleaned_final.csv`.
 
 ---
 
