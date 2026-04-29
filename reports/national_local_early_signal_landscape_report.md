@@ -333,6 +333,40 @@ Academic performance shows a strong inverse relationship with chronic absence. S
 
 Neighborhood-level factors show **weak but directionally consistent** correlations. Violent crime exposure has the strongest neighborhood signal (+0.091), with chronically absent students living in ZIP codes averaging 22% more violent crimes. The relatively weak correlations likely reflect that within Oakland, neighborhood variation is modest compared to individual and family-level factors. These indicators would likely show stronger effects in a dataset spanning multiple cities or regions.
 
+### 4.6 School-Level Homeless Enrollment
+
+Using California Department of Education Homeless Student Enrollment files (2019-20 through 2024-25) joined to OUSD schools by name, we can quantify housing instability as a school-level contextual signal for individual chronic absenteeism.
+
+**District-wide trend.** OUSD's homeless enrollment rate has more than doubled since the pandemic:
+
+| School Year | OUSD Homeless Enrollment Rate |
+|-------------|:-----------------------------:|
+| 2019-20     | 2.4% |
+| 2020-21     | 2.0% |
+| 2021-22     | 3.3% |
+| 2022-23     | 4.3% |
+| 2023-24     | 5.7% |
+| 2024-25     | 5.5% |
+
+![OUSD Homeless Enrollment Trend](figures/fig17_ousd_homeless_trend.png)
+*Figure 17: OUSD's share of students identified as homeless grew from 2.4% in 2019-20 to 5.7% in 2023-24, tracking the post-pandemic housing crisis and paralleling the chronic absenteeism spike.*
+
+**Individual-level signal.** Linking each student-year to the homeless enrollment rate of their school (n = 102,221 matched student-years) reveals a steep dose-response:
+
+| School Homeless Enrollment Rate | Student Chronic Absence Rate | n      |
+|---------------------------------|:----------------------------:|-------:|
+| 0-2%                            | 19.1%                        | 47,522 |
+| 2-5%                            | 37.3%                        | 28,436 |
+| 5-10%                           | 45.3%                        | 19,821 |
+| 10-20%                          | 48.6%                        | 6,434  |
+
+![Chronic Rate by School Homeless Share](figures/fig18_homeless_school_signal.png)
+*Figure 18: Students attending schools where 10-20% of peers are homeless are **2.5x more likely** to be chronically absent than those in schools with <2% homeless enrollment.*
+
+Chronically absent students attend schools averaging **4.7%** homeless enrollment, vs. **2.9%** for non-chronic students (correlation r = +0.23 --- the strongest school-contextual signal in our data, exceeding neighborhood crime and income). This aligns with the national finding that homeless students are overrepresented among chronically absent students (5.1% of chronic-absent population vs. ~2-3% of enrollment), and suggests that homeless enrollment concentrates in specific schools whose broader student bodies also experience elevated absenteeism --- likely reflecting shared neighborhood poverty, transportation barriers, and school-level staffing pressures.
+
+**Temporal alignment with OUSD's chronic spike.** The doubling of OUSD homeless enrollment from 2.0% (2020-21) to 5.7% (2023-24) coincides with --- and plausibly contributes to --- the district's chronic absenteeism surge in 2022-23. Rising housing instability appears to be one of the structural factors amplifying national patterns locally.
+
 ---
 
 ## 5. Synthesis: How National Patterns Manifest in OUSD
@@ -396,9 +430,10 @@ Based on the convergence of national and OUSD evidence, we recommend a tiered ea
 | ZIP-level violent crime | +22% in chronic-absent student neighborhoods |
 | ZIP-level median income | ~$3,100 lower in chronic-absent neighborhoods |
 | ZIP-level poverty rate | Weak but directionally consistent |
+| School-level homeless enrollment rate | **2.5x chronic rate at schools with 10-20% homeless enrollment vs. <2%** (strongest school-context signal, r = +0.23) |
 
 ![Early-Signal Strength Ranking](figures/fig15_signal_strength_ranking.png)
-*Figure 16: Risk ratios across all early-signal indicators --- prior-year attendance below 80% carries the highest risk multiplier (5.2x).*
+*Figure 16: Risk ratios across all early-signal indicators --- prior-year attendance below 80% carries the highest risk multiplier (5.2x); attending a school with 10-20% homeless enrollment adds a 2.5x multiplier, exceeding the high-crime-ZIP contextual signal.*
 
 **Implementation note:** Tier 1 indicators alone identify the majority of future chronic absentees. Tier 2 factors help prioritize limited intervention resources. Tier 3 factors are most useful for system-level resource allocation (e.g., targeting school sites in high-crime neighborhoods for additional support staff).
 
